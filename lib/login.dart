@@ -1,4 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_flutter/add.dart';
+import 'package:firebase_flutter/auth.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 
 class Login extends StatefulWidget {
@@ -9,6 +12,8 @@ class Login extends StatefulWidget {
 }
 
 class _LoginState extends State<Login> {
+  final AuthService _firebaseAuthService = AuthService();
+
   final usuario = TextEditingController();
   final password = TextEditingController();
 
@@ -183,15 +188,12 @@ class _LoginState extends State<Login> {
                           MediaQuery.of(context).size.height > 600 ? 45 : 40,
                         ),
                       ),
-                      onPressed: () {
-                        setState(() {
-                          usuario.text.isEmpty ?
-                          _validateU = true : _validateU = false;
-                          password.text.isEmpty ?
-                          _validateP = true : _validateP = false;
-                          if(!_validateU && !_validateP) {
-                            FocusScope.of(context).requestFocus(FocusNode());
-                            crearCuenta(usuario.text, password.text);
+                      onPressed: () async {
+                        _firebaseAuthService.createUserWithEmailAndPassword(usuario.text,  password.text).then((User? user) {
+                          if (user != null) {
+                            Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (context)=> Add()));
+                          } else {
+                            _showErrorDialog('Ocurrió un error durante la creación de la cuenta');
                           }
                         });
                       },
@@ -215,17 +217,24 @@ class _LoginState extends State<Login> {
                           MediaQuery.of(context).size.height > 600 ? 45 : 40,
                         ),
                       ),
-                      onPressed: () {
-                        setState(() {
-                          usuario.text.isEmpty ?
-                          _validateU = true : _validateU = false;
-                          password.text.isEmpty ?
-                          _validateP = true : _validateP = false;
-                          if(!_validateU && !_validateP) {
-                            FocusScope.of(context).requestFocus(FocusNode());
-                            ingresar(usuario.text, password.text);
-                          }
-                        });
+                      onPressed: () async {
+                        subir();
+                        /*final message = await AuthService().login(
+                          email: usuario.text,
+                          password: password.text,
+                        );
+                        if (message!.contains('Success')) {
+                          Navigator.of(context).pushReplacement(
+                            MaterialPageRoute(
+                              builder: (context) => const Add(),
+                            ),
+                          );
+                        }
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(message),
+                          ),
+                        );*/
                       },
                       child: const Text(
                         'Iniciar Sesión',
@@ -246,37 +255,36 @@ class _LoginState extends State<Login> {
     );
   }
 
-  Future<void> crearCuenta(String emailAddress, String password) async {
-    try {
-      final credential = await FirebaseAuth.instance.createUserWithEmailAndPassword(
-        email: emailAddress,
-        password: password,
-      );
-    } on FirebaseAuthException catch (e) {
-      if (e.code == 'weak-password') {
-        print('The password provided is too weak.');
-      } else if (e.code == 'email-already-in-use') {
-        print('The account already exists for that email.');
-      }
-    } catch (e) {
-      print(e);
-    }
+  void _showErrorDialog(String message) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Error'),
+        content: Text(message),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+            },
+            child: const Text('Aceptar'),
+          ),
+        ],
+      ),
+    );
   }
 
-  Future<void> ingresar(String emailAddress, String password) async {
-    try {
-      final credential = await FirebaseAuth.instance.signInWithEmailAndPassword(
-          email: emailAddress,
-          password: password
-      );
-      print(credential.credential);
-      print(credential.user);
-    } on FirebaseAuthException catch (e) {
-      if (e.code == 'user-not-found') {
-        print('No user found for that email.');
-      } else if (e.code == 'wrong-password') {
-        print('Wrong password provided for that user.');
-      }
-    }
+  void subir() {
+    // Create a storage reference from our app
+    final storageRef = FirebaseStorage.instance.ref();
+
+    // Create a reference to "mountains.jpg"
+    final mountainsRef = storageRef.child("majo.jpeg");
+
+    // Create a reference to 'images/mountains.jpg'
+    final mountainImagesRef = storageRef.child("images/majo.jpeg");
+
+    // While the file names are the same, the references point to different files
+    assert(mountainsRef.name == mountainImagesRef.name);
+    assert(mountainsRef.fullPath != mountainImagesRef.fullPath);
   }
 }

@@ -22,7 +22,6 @@ Future<void> main() async {
   await Firebase.initializeApp( //inicia firevase con los opcines agregadas
     options: DefaultFirebaseOptions.currentPlatform,
   );
-  await FirebaseAuth.instance.useAuthEmulator('localhost', 9099);
   final FirebaseFirestore db = FirebaseFirestore.instance; //instancia de BD
   final CollectionReference users = db.collection('users'); //Referencia de la tabla
   print('');
